@@ -29,12 +29,14 @@
 #include "../iio_widget.h"
 #include "../osc_plugin.h"
 #include "../config.h"
-#include "dac_data_manager.h"
+//#include "dac_data_manager.h"
 
 #define THIS_DRIVER "adaq4224"
 #define IIO_CHANNEL0 "voltage0"
 
 #define SYNC_RELOAD "SYNC_RELOAD"
+
+#define SCALE_AVAIL_BUF_SIZE 128
 
 #define ARRAY_SIZE(x) (!sizeof(x) ?: sizeof(x) / sizeof((x)[0]))
 
@@ -56,6 +58,16 @@ static bool can_update_widgets;
 
 //static const char **adaq4224_sr_attribs;
 //static int sr_attribs_array_size;
+
+static char scale_avail_buf[SCALE_AVAIL_BUF_SIZE];
+static char *scale_available[4];
+
+static GtkWidget *pgia_write;
+static GtkWidget *combobox_debug_scanel;
+static GtkWidget *combobox_attr_type;
+static GtkWidget *scanel_options;
+
+static struct iio_channel *ch;
 
 static const char *adaq4224_sr_attribs[] = {
 	IIO_DEVICE".in_voltage_scale",
@@ -155,6 +167,7 @@ static int adaq4224_handle_driver(struct osc_plugin *plugin, const char *attrib,
 
 static int adaq4224_handle(struct osc_plugin *plugin, int line, const char *attrib, const char *value)
 {
+	printf("adaq4224_handle \n");
 	return osc_plugin_default_handle(ctx, line, attrib, value,
 			adaq4224_handle_driver, NULL);
 }
@@ -182,12 +195,40 @@ static void load_profile(struct osc_plugin *plugin, const char *ini_fn)
 	reload_button_clicked(NULL, NULL);
 }
 
+static void scanel_write_clicked(GtkButton *btn, gpointer data)
+{
+	char *attr_name;
+
+	printf("Clicked!\n");
+	attr_name = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combobox_attr_type));
+
+	if (strcmp(attr_name, "0.33") == 0) {
+		iio_channel_attr_write(ch, "scale", scale_available[0]);
+	} else if (strcmp(attr_name, "0.56") == 0) {
+		iio_channel_attr_write(ch, "scale", scale_available[1]);
+	} else if (strcmp(attr_name, "2.22") == 0) {
+		iio_channel_attr_write(ch, "scale", scale_available[2]);
+	} else if (strcmp(attr_name, "6.67") == 0) {
+		iio_channel_attr_write(ch, "scale", scale_available[3]);
+	}
+
+	printf("Clicked! %s\n", attr_name);
+
+	//iio_channel_attr_write(ch, "scale", "0.001323223");
+
+	g_free(attr_name);
+
+	//scanel_read_clicked(GTK_BUTTON(scanel_read), data);
+}
+
 static GtkWidget * adaq4224_init(struct osc_plugin *plugin, GtkWidget *notebook, const char *ini_fn)
 {
 	GtkBuilder *builder;
 	GtkWidget *adaq4224_panel;
-	//GtkWidget *dds_container;
-	struct iio_channel *ch;
+	//struct iio_channel *ch;
+	char *buf;
+	int i;
+	int len;
 
 	ctx = osc_create_context();
 	if (!ctx)
@@ -199,6 +240,26 @@ static GtkWidget * adaq4224_init(struct osc_plugin *plugin, GtkWidget *notebook,
 		printf("Error: Could not find %s channel\n", IIO_CHANNEL0);
 		goto init_abort;
 	}
+
+	// Debug/test prints {
+	printf("Found channel attr count %d\n", iio_channel_get_attrs_count(ch));
+	printf("scale_available: %s\n", iio_channel_find_attr(ch, "scale_available"));
+	len = iio_channel_attr_read(ch, "scale_available", scale_avail_buf,
+				SCALE_AVAIL_BUF_SIZE);
+	printf("scale_available len: %d\n", len);
+	for (i = 0; i < len; i++) {
+		printf("%c", scale_avail_buf[i]);
+	}
+	printf("\n");
+	//scale_available[0] = strtok(scale_avail_buf, " ");
+	buf = strtok(scale_avail_buf, " ");
+	i = 0;
+	while (buf != NULL) {
+		scale_available[i++] = buf;
+		buf = strtok(NULL, " ");
+	}
+	printf("tokend \n");
+	// } Debug/test prints
 
 	builder = gtk_builder_new();
 	//nbook = GTK_NOTEBOOK(notebook);
@@ -220,16 +281,22 @@ static GtkWidget * adaq4224_init(struct osc_plugin *plugin, GtkWidget *notebook,
 	//	dev, NULL, "operation_mode", "operation_modes_available",
 	//	 builder, "operation_modes_combo", NULL);
 
-	iio_combo_box_init_from_builder(&tx_widgets[num_tx++],
-		dev, NULL, "in_voltage_scale", "in_voltage_scale_available",
-		 builder, "pgia_gain_combo", NULL);
+	//iio_combo_box_init_from_builder(&tx_widgets[num_tx++],
+	//	dev, NULL, "in_voltage_scale", "in_voltage_scale_available",
+	//	 builder, "pgia_gain_combo", NULL);
+	//printf("combo inited \n");
+
+	combobox_attr_type = GTK_WIDGET(gtk_builder_get_object(builder, "pgia_gain_combo"));
 	printf("combo inited \n");
 
 
-	//iio_spin_button_int_init_from_builder(&tx_widgets[num_tx++],
-	//	dev, NULL, "full_scale_current", builder,
-	//	"full_scale_spin", NULL);
+	//Write button
+	pgia_write = GTK_WIDGET(gtk_builder_get_object(builder, "pgia_gain_write"));
+	g_signal_connect(G_OBJECT(pgia_write), "clicked",
+			G_CALLBACK(scanel_write_clicked), NULL);
 
+
+	//scanel_options = GTK_WIDGET(gtk_builder_get_object(builder, "debug_scanel_options"));
 
 	if (ini_fn)
 		load_profile(NULL, ini_fn);

@@ -31,7 +31,7 @@
                       <object class="GtkTable" id="pgia_settings_table">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="n-columns">2</property>
+                        <property name="n-columns">3</property>
                         <property name="column-spacing">10</property>
                         <property name="row-spacing">5</property>
                         <child>
@@ -49,12 +49,30 @@
                           <object class="GtkComboBoxText" id="pgia_gain_combo">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <items>
+                              <item translatable="yes">0.33</item>
+                              <item translatable="yes">0.56</item>
+                              <item translatable="yes">2.22</item>
+                              <item translatable="yes">6.67</item>
+                            </items>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="right-attach">2</property>
                             <property name="x-options">GTK_FILL</property>
                             <property name="y-options">GTK_FILL</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="pgia_gain_write">
+                            <property name="label" translatable="yes">Write</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="right-attach">3</property>
                           </packing>
                         </child>
                       </object>

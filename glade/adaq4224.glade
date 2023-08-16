@@ -73,6 +73,8 @@
                           <packing>
                             <property name="left-attach">2</property>
                             <property name="right-attach">3</property>
+                            <property name="x-options"/>
+                            <property name="y-options"/>
                           </packing>
                         </child>
                       </object>
